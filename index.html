@@ -1,0 +1,475 @@
+
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Photo Sketch Studio Pro</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#080e1b;color:#f2f7ff;font-family:Arial,sans-serif}
+header{padding:16px;background:linear-gradient(120deg,#101b38,#064b65)}
+header h2{margin:0;color:#56eaff}
+header p{font-size:12px;margin:7px 0 0;color:#c1e9ff}
+.app{max-width:1200px;margin:auto;padding:12px}
+.bar{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px}
+button,.file{background:#182740;color:white;border:1px solid #35506e;border-radius:8px;padding:10px;font-size:12px;cursor:pointer}
+button:active{background:#087f9c}
+.primary{background:#087f9c!important;border-color:#56eaff!important}
+.panel{background:#111b2e;border:1px solid #263c58;border-radius:12px;padding:13px;margin-bottom:12px}
+.panel h3{font-size:15px;color:#56eaff;margin:0 0 12px}
+.workspace{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+.stage{min-height:270px;background:#050914;border:1px solid #263c58;border-radius:12px;display:flex;justify-content:center;align-items:center;overflow:auto;padding:8px}
+canvas{display:block;max-width:100%;height:auto;touch-action:none}
+#canvas[hidden]{display:none}
+.placeholder{text-align:center;color:#9ab1ce;padding:25px}
+.placeholder b{font-size:48px}
+.tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.tools button{padding:10px 3px;min-height:42px}
+label.control{display:block;font-size:12px;color:#bed0e9;margin:12px 0}
+.control span{float:right;color:#56eaff}
+input[type=range]{display:block;width:100%;margin-top:9px;accent-color:#43dfff}
+input[type=text],select{width:100%;padding:10px;background:#091322;color:white;border:1px solid #304461;border-radius:8px}
+input[type=color]{width:100%;height:36px;background:#101b2e;border:0}
+.emoji-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.emoji-grid button{font-size:22px;padding:6px 0}
+.row{display:flex;flex-wrap:wrap;gap:7px}
+.row button{flex:1}
+.hint{font-size:11px;color:#8fa9c8;line-height:1.6}
+#status{font-size:12px;color:#68e7f8;margin:9px 0}
+@media(min-width:850px){.workspace{grid-template-columns:minmax(0,1fr) 340px}.stage{min-height:460px}}
+</style>
+</head>
+<body>
+<header>
+<h2>✦ Photo Sketch Studio Pro</h2>
+<p>✏️ Pencil Sketch • HD Enhancer • Emoji Art • Creative Editor</p>
+</header>
+
+<div class="app">
+<div class="bar">
+<label class="file primary">📁 Gallery Photo
+<input id="upload" type="file" accept="image/*" hidden>
+</label>
+<button id="undo">↶ Undo</button>
+<button id="redo">↷ Redo</button>
+<button id="reset">⟲ Reset</button>
+<button id="compare">👁 Original</button>
+<button class="primary" id="save">⬇ Save PNG</button>
+</div>
+
+<div class="workspace">
+<div>
+<div class="stage" id="stage">
+<div class="placeholder" id="placeholder">
+<b>🎨</b><h3>Your Art Studio</h3>
+<p>Gallery से फोटो चुनकर अपनी masterpiece बनाएं।</p>
+</div>
+<canvas id="canvas" hidden></canvas>
+</div>
+<div id="status">Ready — अपनी फोटो अपलोड करें।</div>
+<p class="hint">Move Item चुनकर decoration को drag करें। Text या emoji जोड़ने के बाद उसे canvas पर drag कर सकते हैं।</p>
+
+<div class="panel">
+<h3>🖌️ Drawing & Decoration</h3>
+<div class="tools">
+<button data-tool="brush">🖌️ Brush</button>
+<button data-tool="eraser">🧽 Eraser</button>
+<button data-tool="text">🔤 Text</button>
+<button data-tool="emoji">😍 Emoji</button>
+<button data-tool="sticker">✨ Sticker</button>
+<button data-tool="line">📏 Line</button>
+<button data-tool="rect">▢ Rectangle</button>
+<button data-tool="circle">⭕ Circle</button>
+<button data-tool="arrow">➡️ Arrow</button>
+<button data-tool="frame">🖼️ Frame</button>
+<button data-tool="select">✋ Move Item</button>
+</div>
+<label class="control">Brush / Decoration size <span id="sizeV">6</span>
+<input type="range" id="size" min="1" max="70" value="6"></label>
+<label class="control">Color
+<input type="color" id="color" value="#00d9ff"></label>
+<label class="control">Text / Sticker
+<input id="content" type="text" placeholder="अपना नाम या text लिखें"></label>
+<div class="row">
+<button id="addText">＋ Add Text</button>
+<button id="addEmoji">😍 Add Emoji</button>
+<button id="addSticker">✨ Add Sticker</button>
+</div>
+<label class="control">Text size <span id="textV">36</span>
+<input type="range" id="textSize" min="12" max="100" value="36"></label>
+</div>
+
+<div class="panel">
+<h3>😍 Emoji & Sticker Collection</h3>
+<div class="emoji-grid" id="emojiGrid"></div>
+</div>
+</div>
+
+<div>
+<div class="panel">
+<h3>✏️ Pencil Sketch Pro</h3>
+<div class="tools">
+<button data-effect="sketch">✏️ Pencil</button>
+<button data-effect="charcoal">🖤 Charcoal</button>
+<button data-effect="soft">📝 Soft Sketch</button>
+<button data-effect="ink">🖋️ Ink Art</button>
+<button data-effect="gray">◐ Grayscale</button>
+<button data-effect="original">↩ Original</button>
+</div>
+<label class="control">Sketch Strength <span id="strengthV">65%</span>
+<input type="range" id="strength" min="0" max="100" value="65"></label>
+<label class="control">Line Detail <span id="detailV">60%</span>
+<input type="range" id="detail" min="0" max="100" value="60"></label>
+<label class="control">Paper Brightness <span id="paperV">100%</span>
+<input type="range" id="paper" min="50" max="160" value="100"></label>
+<button class="primary" id="applySketch" style="width:100%">✨ Apply Sketch Settings</button>
+</div>
+
+<div class="panel">
+<h3>💎 HD Graphics Enhancer</h3>
+<label class="control">Brightness <span id="brightV">100%</span>
+<input type="range" id="bright" min="50" max="160" value="100"></label>
+<label class="control">Contrast <span id="contrastV">100%</span>
+<input type="range" id="contrast" min="50" max="180" value="100"></label>
+<label class="control">Saturation <span id="satV">100%</span>
+<input type="range" id="sat" min="0" max="200" value="100"></label>
+<label class="control">Sharpness <span id="sharpV">0</span>
+<input type="range" id="sharp" min="0" max="100" value="0"></label>
+<button class="primary" id="enhance" style="width:100%">💎 Apply HD Enhancement</button>
+</div>
+
+<div class="panel">
+<h3>🎨 Art Filters</h3>
+<div class="tools">
+<button data-filter="none">Original</button>
+<button data-filter="vivid">🌈 Vivid</button>
+<button data-filter="warm">🌅 Warm</button>
+<button data-filter="cool">❄️ Cool</button>
+<button data-filter="vintage">📜 Vintage</button>
+<button data-filter="mono">⚫ Mono</button>
+</div>
+</div>
+
+<div class="panel">
+<h3>🖼️ Frames & Background</h3>
+<div class="tools">
+<button data-frame="gold">✨ Gold Frame</button>
+<button data-frame="neon">💠 Neon Frame</button>
+<button data-frame="classic">🖼️ Classic</button>
+<button data-frame="heart">💖 Heart Theme</button>
+<button data-frame="rainbow">🌈 Rainbow</button>
+<button data-frame="none">❌ No Frame</button>
+</div>
+</div>
+
+<div class="panel">
+<h3>📐 Canvas & Export</h3>
+<label class="control">Canvas Background
+<input type="color" id="bgcolor" value="#ffffff"></label>
+<div class="row">
+<button id="bgApply">Set Background</button>
+<button id="clearDecor">Clear Decorations</button>
+</div>
+<div class="row" style="margin-top:8px">
+<button id="exportJpg">Save JPG</button>
+<button id="exportPng" class="primary">Save HD PNG</button>
+</div>
+<p class="hint">Original image की उपलब्ध resolution में export किया जाएगा। फोटो और edits browser में ही रहते हैं।</p>
+</div>
+</div>
+</div>
+</div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const c=$('canvas'),ctx=c.getContext('2d',{willReadFrequently:true});
+const work=document.createElement('canvas'),wctx=work.getContext('2d',{willReadFrequently:true});
+let original=null,base=null,tool='brush',effect='original',filter='none',frame='none';
+let items=[],history=[],future=[],drawing=false,start=null,last=null;
+let selected=-1,dragging=false,showOriginal=false;
+let brushSize=6,drawColor='#00d9ff',img=null;
+const MAX=1800;
+const emojis=['😍','❤️','💖','✨','⭐','🌟','🌈','🔥','⚡','🌸','🌹','🌻','🦋','💎','👑','🎀','🎨','🎉','🥰','😎','🤍','💫','☀️','🌙','☁️','🌺','🍀','🪷','💐','💥','🎵','🪽','🩵','💜','🧡','🌼','🐼','🐱','🐻','🦄','🚀','💯','❣️','💝','🎁','🌿','☘️','🪄','🔮','🫶','💌','🏆','🎭','🕊️'];
+const grid=$('emojiGrid');
+emojis.forEach(e=>{let b=document.createElement('button');b.textContent=e;b.onclick=()=>{ $('content').value=e;tool='emoji';setStatus('Emoji चुना गया: '+e+' — अब फोटो पर टैप करें।');};grid.appendChild(b)});
+function setStatus(s){$('status').textContent=s}
+function snap(){return c.toDataURL('image/png')}
+function saveHistory(){
+ if(!img)return;
+ history.push(snap());if(history.length>18)history.shift();future=[];
+}
+function restore(url){
+ let im=new Image();im.onload=()=>{ctx.clearRect(0,0,c.width,c.height);ctx.drawImage(im,0,0,c.width,c.height);};im.src=url;
+}
+function refresh(){drawAll()}
+function drawAll(){
+ if(!img)return;
+ ctx.clearRect(0,0,c.width,c.height);
+ if(showOriginal){ctx.drawImage(original,0,0,c.width,c.height);return}
+ ctx.drawImage(base,0,0,c.width,c.height);
+ items.forEach((it,i)=>{
+  ctx.save();ctx.globalAlpha=it.alpha??1;
+  if(it.type==='text'||it.type==='emoji'||it.type==='sticker'){
+   ctx.textAlign='center';ctx.textBaseline='middle';
+   ctx.font=it.type==='text'?`bold ${it.size}px Arial,sans-serif`:`${it.size}px "Apple Color Emoji","Segoe UI Emoji",sans-serif`;
+   if(it.type==='text'){ctx.lineWidth=Math.max(1,it.size/15);ctx.strokeStyle='#00000066';ctx.strokeText(it.text,it.x,it.y);ctx.fillStyle=it.color;ctx.fillText(it.text,it.x,it.y)}
+   else ctx.fillText(it.text,it.x,it.y);
+  }else{
+   ctx.strokeStyle=it.color;ctx.lineWidth=it.size;ctx.lineCap='round';ctx.lineJoin='round';
+   if(it.type==='brush'||it.type==='eraser'){
+    ctx.globalCompositeOperation=it.type==='eraser'?'destination-out':'source-over';
+    ctx.beginPath();ctx.moveTo(it.x1,it.y1);ctx.lineTo(it.x2,it.y2);ctx.stroke();
+   }else{
+    ctx.beginPath();ctx.moveTo(it.x1,it.y1);
+    if(it.type==='line')ctx.lineTo(it.x2,it.y2);
+    if(it.type==='rect')ctx.rect(it.x1,it.y1,it.x2-it.x1,it.y2-it.y1);
+    if(it.type==='circle'){
+     let dx=it.x2-it.x1,dy=it.y2-it.y1;
+     ctx.ellipse(it.x1+dx/2,it.y1+dy/2,Math.abs(dx/2),Math.abs(dy/2),0,0,Math.PI*2);
+    }
+    if(it.type==='arrow'){
+     let a=Math.atan2(it.y2-it.y1,it.x2-it.x1),head=it.size*3;
+     ctx.lineTo(it.x2,it.y2);ctx.moveTo(it.x2,it.y2);
+     ctx.lineTo(it.x2-head*Math.cos(a-.5),it.y2-head*Math.sin(a-.5));
+     ctx.moveTo(it.x2,it.y2);ctx.lineTo(it.x2-head*Math.cos(a+.5),it.y2-head*Math.sin(a+.5));
+    }
+    ctx.stroke();
+   }
+  }
+  ctx.restore();
+ });
+ if(frame!=='none')drawFrame(frame);
+ if(selected>=0&&items[selected]){
+  let it=items[selected];ctx.save();ctx.strokeStyle='#55eaff';ctx.lineWidth=2;
+  ctx.setLineDash([6,4]);ctx.strokeRect(it.x-35,it.y-(it.size||30),70,(it.size||30)*2);ctx.restore();
+ }
+}
+function drawFrame(f){
+ let W=c.width,H=c.height;
+ ctx.save();
+ if(f==='gold'){ctx.strokeStyle='#d9ad45';ctx.lineWidth=Math.max(5,W*.012);ctx.strokeRect(8,8,W-16,H-16);ctx.strokeStyle='#fff0a3';ctx.lineWidth=2;ctx.strokeRect(18,18,W-36,H-36)}
+ if(f==='neon'){ctx.shadowColor='#00eaff';ctx.shadowBlur=24;ctx.strokeStyle='#42eaff';ctx.lineWidth=7;ctx.strokeRect(10,10,W-20,H-20)}
+ if(f==='classic'){ctx.strokeStyle='#f8f1dd';ctx.lineWidth=25;ctx.strokeRect(5,5,W-10,H-10);ctx.strokeStyle='#292929';ctx.lineWidth=2;ctx.strokeRect(18,18,W-36,H-36)}
+ if(f==='rainbow'){let colors=['#ff345c','#ffbd38','#45ff9a','#42c8ff','#a75bff'];colors.forEach((col,i)=>{ctx.strokeStyle=col;ctx.lineWidth=5;ctx.strokeRect(8+i*7,8+i*7,W-16-i*14,H-16-i*14)})}
+ if(f==='heart'){ctx.strokeStyle='#ff65b8';ctx.lineWidth=7;ctx.strokeRect(8,8,W-16,H-16);ctx.font=`${Math.max(20,W*.04)}px Arial`;ctx.fillText('♥',W*.04,H*.09);ctx.fillText('♥',W*.96,H*.09)}
+ ctx.restore();
+}
+function applyEffects(mode){
+ if(!original)return;
+ effect=mode;
+ const W=c.width,H=c.height;
+ wctx.clearRect(0,0,W,H);
+ if(mode==='original'){wctx.drawImage(original,0,0,W,H);base=wctx.getImageData(0,0,W,H);refresh();return}
+ let src=document.createElement('canvas');src.width=W;src.height=H;
+ let s=src.getContext('2d',{willReadFrequently:true});s.drawImage(original,0,0,W,H);
+ let data=s.getImageData(0,0,W,H),p=data.data;
+ const gray=new Float32Array(W*H);
+ for(let i=0,j=0;i<p.length;i+=4,j++)gray[j]=.299*p[i]+.587*p[i+1]+.114*p[i+2];
+ const strength=+$('strength').value/100,detail=+$('detail').value/100,paper=+$('paper').value/100;
+ if(['sketch','soft','charcoal','ink'].includes(mode)){
+  const inv=new Float32Array(W*H);
+  for(let j=0;j<gray.length;j++)inv[j]=255-gray[j];
+  let blur=new Float32Array(W*H),radius=mode==='soft'?5:mode==='charcoal'?2:3;
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+   let sum=0,n=0;
+   for(let k=-radius;k<=radius;k++){let xx=Math.max(0,Math.min(W-1,x+k));sum+=inv[y*W+xx];n++}
+   blur[y*W+x]=sum/n;
+  }
+  const out=new Uint8ClampedArray(p.length);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+   let j=y*W+x,i=j*4;
+   let a=gray[j],b=blur[j];
+   let v=a>=254?255:Math.min(255,a*255/(255-b+1));
+   let edge=0;
+   if(x<W-1&&y<H-1)edge=Math.abs(gray[j+1]-a)+Math.abs(gray[j+W]-a);
+   if(mode==='ink')v=edge>18+detail*35?15:255;
+   if(mode==='charcoal')v=255-(255-v)*1.35;
+   v=255-(255-v)*strength;
+   v=Math.min(255,v*paper);
+   out[i]=out[i+1]=out[i+2]=Math.max(0,Math.min(255,v));out[i+3]=255;
+  }
+  data.data.set(out);
+ }else{
+  for(let i=0;i<p.length;i+=4){
+   let v=gray[i/4];
+   if(mode==='gray')p[i]=p[i+1]=p[i+2]=v;
+  }
+ }
+ s.putImageData(data,0,0);wctx.drawImage(src,0,0);
+ base=wctx.getImageData(0,0,W,H);refresh();
+ setStatus(mode==='gray'?'Grayscale applied':'Sketch effect applied — अब decoration करें।');
+}
+function enhance(){
+ if(!original)return;
+ const W=c.width,H=c.height;
+ const tmp=document.createElement('canvas');tmp.width=W;tmp.height=H;
+ const t=tmp.getContext('2d',{willReadFrequently:true});
+ t.filter=`brightness(${$('bright').value}%) contrast(${$('contrast').value}%) saturate(${$('sat').value}%)`;
+ t.drawImage(c,0,0);
+ let im=t.getImageData(0,0,W,H),p=im.data;
+ let sharp=+$('sharp').value/100;
+ if(sharp>0){
+  let copy=new Uint8ClampedArray(p);
+  for(let y=1;y<H-1;y++)for(let x=1;x<W-1;x++){
+   let i=(y*W+x)*4;
+   for(let k=0;k<3;k++){
+    let v=copy[i+k]* (1+4*sharp);
+    v-=sharp*(copy[i-4+k]+copy[i+4+k]+copy[i-W*4+k]+copy[i+W*4+k]);
+    p[i+k]=Math.max(0,Math.min(255,v));
+   }
+  }
+  t.putImageData(im,0,0);
+ }
+ saveHistory();base=ctx.getImageData(0,0,W,H);
+ let im2=t.getImageData(0,0,W,H);base=im2;
+ items=[];refresh();setStatus('HD enhancement applied.');
+}
+function applyFilter(f){
+ if(!original)return;filter=f;
+ let css='none';
+ if(f==='vivid')css='saturate(1.65) contrast(1.1)';
+ if(f==='warm')css='sepia(.25) saturate(1.2)';
+ if(f==='cool')css='hue-rotate(12deg) saturate(1.15)';
+ if(f==='vintage')css='sepia(.55) contrast(.9)';
+ if(f==='mono')css='grayscale(1)';
+ const temp=document.createElement('canvas');temp.width=c.width;temp.height=c.height;
+ const tc=temp.getContext('2d');tc.filter=css;tc.drawImage(original,0,0,c.width,c.height);
+ base=tc.getImageData(0,0,c.width,c.height);refresh();setStatus('Art filter applied.');
+}
+function addItem(type,text,x,y){
+ if(!img){setStatus('पहले फोटो अपलोड करें।');return}
+ saveHistory();
+ items.push({type,text,x,y,size:type==='text'?+$('textSize').value:brushSize,color:$('color').value});
+ selected=items.length-1;refresh();
+}
+function pos(e){
+ let r=c.getBoundingClientRect();
+ return {x:(e.clientX-r.left)*c.width/r.width,y:(e.clientY-r.top)*c.height/r.height};
+}
+function hit(x,y){
+ for(let i=items.length-1;i>=0;i--){
+ let it=items[i];
+ if(['text','emoji','sticker'].includes(it.type)&&Math.abs(x-it.x)<Math.max(35,it.size)&&Math.abs(y-it.y)<Math.max(35,it.size))return i;
+ }
+ return -1;
+}
+c.addEventListener('pointerdown',e=>{
+ if(!img)return;
+ let p=pos(e);start=p;last=p;drawing=true;
+ if(tool==='select'){
+  selected=hit(p.x,p.y);dragging=selected>=0;
+  if(dragging)saveHistory();
+  refresh();return;
+ }
+ if(tool==='emoji'||tool==='sticker'||tool==='text'){
+  drawing=false;
+  let text=$('content').value.trim();
+  if(tool==='emoji')text=text||'😍';
+  if(tool==='sticker')text=text||'✨';
+  if(tool==='text'&&!text){text=prompt('अपना Text लिखें:')||''}
+  if(text)addItem(tool,text,p.x,p.y);
+  return;
+ }
+ saveHistory();
+ if(tool==='brush'||tool==='eraser'){
+  items.push({type:tool,x1:p.x,y1:p.y,x2:p.x,y2:p.y,size:brushSize,color:drawColor});
+ }
+});
+c.addEventListener('pointermove',e=>{
+ if(!drawing||!img)return;
+ let p=pos(e);
+ if(tool==='select'&&dragging&&selected>=0){
+  items[selected].x+=p.x-last.x;items[selected].y+=p.y-last.y;last=p;refresh();return;
+ }
+ if(tool==='brush'||tool==='eraser'){
+  items.push({type:tool,x1:last.x,y1:last.y,x2:p.x,y2:p.y,size:brushSize,color:drawColor});last=p;refresh();
+ }else if(['line','rect','circle','arrow'].includes(tool)){
+  refresh();ctx.save();ctx.strokeStyle=drawColor;ctx.lineWidth=brushSize;ctx.setLineDash([5,4]);
+  ctx.strokeRect(start.x,start.y,p.x-start.x,p.y-start.y);ctx.restore();
+ }
+});
+function endDraw(e){
+ if(!drawing)return;
+ let p=pos(e);
+ if(['line','rect','circle','arrow'].includes(tool)&&start){
+  items.push({type:tool,x1:start.x,y1:start.y,x2:p.x,y2:p.y,size:brushSize,color:drawColor});
+ }
+ drawing=false;dragging=false;start=null;refresh();
+}
+c.addEventListener('pointerup',endDraw);
+c.addEventListener('pointercancel',endDraw);
+c.addEventListener('click',e=>{
+ if(!img||tool!=='frame')return;
+ frame='gold';refresh();
+});
+$('upload').onchange=e=>{
+ let file=e.target.files[0];if(!file)return;
+ if(!file.type.startsWith('image/')){setStatus('Please choose an image.');return}
+ let url=URL.createObjectURL(file),im=new Image();
+ im.onload=()=>{
+  let scale=Math.min(1,MAX/Math.max(im.naturalWidth,im.naturalHeight));
+  c.width=Math.round(im.naturalWidth*scale);c.height=Math.round(im.naturalHeight*scale);
+  work.width=c.width;work.height=c.height;
+  ctx.drawImage(im,0,0,c.width,c.height);
+  original=document.createElement('canvas');original.width=c.width;original.height=c.height;
+  original.getContext('2d').drawImage(im,0,0,c.width,c.height);
+  base=ctx.getImageData(0,0,c.width,c.height);img=im;items=[];history=[];future=[];frame='none';effect='original';
+  c.hidden=false;$('placeholder').hidden=true;showOriginal=false;
+  refresh();setStatus('Photo loaded • '+im.naturalWidth+' × '+im.naturalHeight);
+  URL.revokeObjectURL(url);
+ };
+ im.onerror=()=>setStatus('फोटो नहीं खुली। दूसरी image चुनें।');
+ im.src=url;
+};
+$('size').oninput=e=>{brushSize=+e.target.value;drawColor=$('color').value;$('sizeV').textContent=brushSize};
+$('color').oninput=e=>drawColor=e.target.value;
+$('textSize').oninput=e=>$('textV').textContent=e.target.value;
+$('strength').oninput=e=>$('strengthV').textContent=e.target.value+'%';
+$('detail').oninput=e=>$('detailV').textContent=e.target.value+'%';
+$('paper').oninput=e=>$('paperV').textContent=e.target.value+'%';
+[['bright','brightV'],['contrast','contrastV'],['sat','satV']].forEach(([a,b])=>$(a).oninput=e=>$(b).textContent=e.target.value+'%');
+$('sharp').oninput=e=>$('sharpV').textContent=e.target.value;
+document.querySelectorAll('[data-tool]').forEach(b=>b.onclick=()=>{
+ tool=b.dataset.tool;document.querySelectorAll('[data-tool]').forEach(x=>x.classList.toggle('active',x===b));
+ setStatus('Tool selected: '+tool);
+ if(tool==='frame'){frame='gold';refresh()}
+});
+document.querySelectorAll('[data-effect]').forEach(b=>b.onclick=()=>{
+ if(!img)return setStatus('पहले फोटो अपलोड करें।');
+ saveHistory();applyEffects(b.dataset.effect);
+});
+$('applySketch').onclick=()=>{saveHistory();applyEffects(effect==='original'?'sketch':effect)};
+document.querySelectorAll('[data-filter]').forEach(b=>b.onclick=()=>applyFilter(b.dataset.filter));
+document.querySelectorAll('[data-frame]').forEach(b=>b.onclick=()=>{frame=b.dataset.frame;refresh()});
+$('addText').onclick=()=>{let t=$('content').value.trim();if(t)addItem('text',t,c.width/2,c.height/2);else setStatus('पहले Text लिखें।')};
+$('addEmoji').onclick=()=>addItem('emoji',$('content').value.trim()||'😍',c.width/2,c.height/2);
+$('addSticker').onclick=()=>addItem('sticker',$('content').value.trim()||'✨',c.width/2,c.height/2);
+$('bgApply').onclick=()=>{
+ if(!img)return;
+ saveHistory();let col=$('bgcolor').value;
+ ctx.save();ctx.globalCompositeOperation='destination-over';ctx.fillStyle=col;ctx.fillRect(0,0,c.width,c.height);ctx.restore();
+ base=ctx.getImageData(0,0,c.width,c.height);refresh();
+};
+$('clearDecor').onclick=()=>{if(!img)return;saveHistory();items=[];selected=-1;frame='none';refresh()};
+$('undo').onclick=()=>{if(!history.length)return;future.push(snap());restore(history.pop());setStatus('Undo complete')};
+$('redo').onclick=()=>{if(!future.length)return;history.push(snap());restore(future.pop());setStatus('Redo complete')};
+$('reset').onclick=()=>{
+ if(!original)return;
+ saveHistory();ctx.drawImage(original,0,0,c.width,c.height);
+ base=ctx.getImageData(0,0,c.width,c.height);items=[];frame='none';effect='original';filter='none';refresh();
+};
+$('compare').onclick=()=>{showOriginal=!showOriginal;$('compare').textContent=showOriginal?'🎨 Show Edited':'👁 Original';refresh()};
+function download(type){
+ if(!img)return setStatus('पहले फोटो अपलोड करें।');
+ showOriginal=false;refresh();
+ let a=document.createElement('a');a.download=type==='image/jpeg'?'sketch-art.jpg':'sketch-art.png';
+ a.href=c.toDataURL(type,type==='image/jpeg'?.94:1);a.click();setStatus('Export ready • '+a.download);
+}
+$('save').onclick=$('exportPng').onclick=()=>download('image/png');
+$('exportJpg').onclick=()=>download('image/jpeg');
+})();
+</script>
+</body>
+</html>
